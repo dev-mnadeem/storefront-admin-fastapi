@@ -3,6 +3,9 @@ uvicorn[standard]==0.54.0
 SQLAlchemy==2.1.8
 greenlet==3.5.6
 aiomysql==0.3.2
+# MySQL 8.4 defaults to caching_sha2_password; without TLS the client
+# needs RSA from cryptography to send the password.
+cryptography==50.0.2
 aiosqlite==0.22.1
 pydantic==2.14.3
 pydantic-settings==2.16.2
