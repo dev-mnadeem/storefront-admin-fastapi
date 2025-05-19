@@ -93,6 +93,25 @@ async def test_patch_updates_only_given_fields(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("field", ["name", "price", "is_active"])
+async def test_patch_cannot_null_a_required_field(
+    client: AsyncClient, product: dict, field: str
+) -> None:
+    response = await client.patch(f"/products/{product['id']}", json={field: None})
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "invalid_request"
+    unchanged = await client.get(f"/products/{product['id']}")
+    assert unchanged.json()[field] == product[field]
+
+
+@pytest.mark.asyncio
+async def test_patch_can_clear_the_category(client: AsyncClient, product: dict) -> None:
+    response = await client.patch(f"/products/{product['id']}", json={"category": None})
+    assert response.status_code == 200
+    assert response.json()["category"] is None
+
+
+@pytest.mark.asyncio
 async def test_patch_to_a_taken_name_is_a_conflict(
     client: AsyncClient, product: dict
 ) -> None:

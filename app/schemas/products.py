@@ -1,6 +1,6 @@
 from decimal import Decimal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class ProductBase(BaseModel):
@@ -21,6 +21,19 @@ class ProductUpdate(BaseModel):
     category: str | None = Field(default=None, max_length=100)
     price: Decimal | None = Field(default=None, gt=0, decimal_places=2)
     is_active: bool | None = None
+
+    @model_validator(mode="after")
+    def _required_columns_stay_set(self) -> "ProductUpdate":
+        # Omitting a field leaves it alone; sending null for a NOT NULL column
+        # would otherwise reach the database and fail as a 500.
+        cleared = sorted(
+            name
+            for name in ("name", "price", "is_active")
+            if name in self.model_fields_set and getattr(self, name) is None
+        )
+        if cleared:
+            raise ValueError(f"{', '.join(cleared)} cannot be null")
+        return self
 
 
 class ProductRead(ProductBase):
