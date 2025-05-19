@@ -17,7 +17,7 @@ class ProductRepository:
     ) -> Select:
         stmt = select(Product)
         if search:
-            stmt = stmt.where(Product.name.ilike(f"%{search}%"))
+            stmt = stmt.where(Product.name.icontains(search, autoescape=True))
         if category:
             stmt = stmt.where(Product.category == category)
         if is_active is not None:

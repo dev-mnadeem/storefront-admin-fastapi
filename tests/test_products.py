@@ -60,6 +60,17 @@ async def test_search_matches_name_case_insensitively(
 
 
 @pytest.mark.asyncio
+async def test_search_treats_wildcards_literally(client: AsyncClient) -> None:
+    for name in ("50% off voucher", "500g coffee", "Gift_card", "Gift card"):
+        await client.post("/products/", json={"name": name, "price": "1.00"})
+
+    percent = await client.get("/products/", params={"search": "50%"})
+    assert [item["name"] for item in percent.json()["items"]] == ["50% off voucher"]
+    underscore = await client.get("/products/", params={"search": "t_c"})
+    assert [item["name"] for item in underscore.json()["items"]] == ["Gift_card"]
+
+
+@pytest.mark.asyncio
 async def test_filter_by_category_and_active_flag(
     client: AsyncClient, product: dict
 ) -> None:
