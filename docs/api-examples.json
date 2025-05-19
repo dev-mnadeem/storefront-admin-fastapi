@@ -1,0 +1,336 @@
+{
+  "recorded": "2026-11-08 against mysql:8.4 after `python -m demo_data`, ADMIN_API_KEY set; synthetic shop data",
+  "exchanges": [
+    {
+      "request": "GET /health",
+      "x_api_key_sent": false,
+      "body": null,
+      "status": 200,
+      "response": {
+        "status": "ok",
+        "database": "ok",
+        "version": "1.0.0"
+      }
+    },
+    {
+      "request": "POST /products/",
+      "x_api_key_sent": false,
+      "body": {
+        "name": "Pour-over kettle",
+        "category": "Brewing",
+        "price": "42.50"
+      },
+      "status": 401,
+      "response": {
+        "error": {
+          "code": "unauthorized",
+          "message": "Missing or invalid X-API-Key header.",
+          "details": {}
+        }
+      }
+    },
+    {
+      "request": "POST /products/",
+      "x_api_key_sent": true,
+      "body": {
+        "name": "Pour-over kettle",
+        "category": "Brewing",
+        "price": "42.50"
+      },
+      "status": 201,
+      "response": {
+        "name": "Pour-over kettle",
+        "category": "Brewing",
+        "price": "42.50",
+        "is_active": true,
+        "id": 5
+      }
+    },
+    {
+      "request": "POST /inventory/",
+      "x_api_key_sent": true,
+      "body": {
+        "product_id": 5,
+        "quantity": 3,
+        "reason": "first delivery"
+      },
+      "status": 201,
+      "response": {
+        "product_id": 5,
+        "quantity": 3,
+        "id": 5
+      }
+    },
+    {
+      "request": "POST /sales/",
+      "x_api_key_sent": true,
+      "body": {
+        "product_id": 5,
+        "quantity_sold": 2,
+        "sale_date": "2026-11-02"
+      },
+      "status": 201,
+      "response": {
+        "product_id": 5,
+        "quantity_sold": 2,
+        "sale_date": "2026-11-02",
+        "id": 6,
+        "total_amount": "85.00"
+      }
+    },
+    {
+      "request": "POST /sales/",
+      "x_api_key_sent": true,
+      "body": {
+        "product_id": 5,
+        "quantity_sold": 2,
+        "sale_date": "2026-11-02"
+      },
+      "status": 409,
+      "response": {
+        "error": {
+          "code": "conflict",
+          "message": "Only 1 unit(s) of product 5 in stock.",
+          "details": {
+            "product_id": 5,
+            "on_hand": 1,
+            "requested": 2
+          }
+        }
+      }
+    },
+    {
+      "request": "GET /inventory/logs/5",
+      "x_api_key_sent": false,
+      "body": null,
+      "status": 200,
+      "response": {
+        "items": [
+          {
+            "id": 11,
+            "product_id": 5,
+            "quantity_change": -2,
+            "reason": "sale 6 on 2026-11-02",
+            "created_at": "2026-11-08T16:42:57"
+          },
+          {
+            "id": 10,
+            "product_id": 5,
+            "quantity_change": 3,
+            "reason": "first delivery",
+            "created_at": "2026-11-08T16:42:57"
+          }
+        ],
+        "total": 2,
+        "limit": 50,
+        "offset": 0
+      }
+    },
+    {
+      "request": "GET /inventory/?low_stock=true",
+      "x_api_key_sent": false,
+      "body": null,
+      "status": 200,
+      "response": {
+        "items": [
+          {
+            "product_id": 4,
+            "product_name": "Gizmo Y",
+            "category": "Tools",
+            "quantity": 0,
+            "is_low_stock": true
+          },
+          {
+            "product_id": 5,
+            "product_name": "Pour-over kettle",
+            "category": "Brewing",
+            "quantity": 1,
+            "is_low_stock": true
+          },
+          {
+            "product_id": 3,
+            "product_name": "Gizmo X",
+            "category": "Tools",
+            "quantity": 4,
+            "is_low_stock": true
+          }
+        ],
+        "total": 3,
+        "limit": 50,
+        "offset": 0
+      }
+    },
+    {
+      "request": "GET /products/?search=widget",
+      "x_api_key_sent": false,
+      "body": null,
+      "status": 200,
+      "response": {
+        "items": [
+          {
+            "name": "Widget A",
+            "category": "Gadgets",
+            "price": "19.99",
+            "is_active": true,
+            "id": 1
+          },
+          {
+            "name": "Widget B",
+            "category": "Gadgets",
+            "price": "29.99",
+            "is_active": true,
+            "id": 2
+          }
+        ],
+        "total": 2,
+        "limit": 50,
+        "offset": 0
+      }
+    },
+    {
+      "request": "GET /sales/summary?interval=week&start_date=2026-10-01",
+      "x_api_key_sent": false,
+      "body": null,
+      "status": 200,
+      "response": [
+        {
+          "period": "2026-W40",
+          "revenue": "159.92"
+        },
+        {
+          "period": "2026-W44",
+          "revenue": "9.99"
+        },
+        {
+          "period": "2026-W45",
+          "revenue": "444.83"
+        }
+      ]
+    },
+    {
+      "request": "GET /sales/summary_by_category",
+      "x_api_key_sent": false,
+      "body": null,
+      "status": 200,
+      "response": [
+        {
+          "category": "Gadgets",
+          "revenue": "519.75"
+        },
+        {
+          "category": "Brewing",
+          "revenue": "85.00"
+        },
+        {
+          "category": "Tools",
+          "revenue": "9.99"
+        }
+      ]
+    },
+    {
+      "request": "GET /sales/compare?interval=month&on=2026-11-08",
+      "x_api_key_sent": false,
+      "body": null,
+      "status": 200,
+      "response": {
+        "interval": "month",
+        "current_period_start": "2026-11-01",
+        "previous_period_start": "2026-10-01",
+        "current_period_revenue": "454.82",
+        "previous_period_revenue": "159.92",
+        "change_percent": 184.4
+      }
+    },
+    {
+      "request": "GET /insights/?interval=month&on=2026-11-08",
+      "x_api_key_sent": false,
+      "body": null,
+      "status": 200,
+      "response": {
+        "provider": "rules",
+        "headline": "Revenue so far this month is 454.82, up 184.40% on the previous month (159.92).",
+        "bullets": [
+          "Revenue by category: Gadgets 359.83, Brewing 85.00, Tools 9.99.",
+          "3 product(s) below the low-stock threshold of 10: Gizmo Y (0), Pour-over kettle (1), Gizmo X (4)."
+        ],
+        "metrics": {
+          "as_of": "2026-11-08",
+          "interval": "month",
+          "current_period_revenue": 454.82,
+          "previous_period_revenue": 159.92,
+          "change_percent": 184.4,
+          "top_categories": [
+            {
+              "category": "Gadgets",
+              "revenue": 359.83
+            },
+            {
+              "category": "Brewing",
+              "revenue": 85.0
+            },
+            {
+              "category": "Tools",
+              "revenue": 9.99
+            }
+          ],
+          "low_stock": [
+            {
+              "product_id": 4,
+              "product_name": "Gizmo Y",
+              "quantity": 0
+            },
+            {
+              "product_id": 5,
+              "product_name": "Pour-over kettle",
+              "quantity": 1
+            },
+            {
+              "product_id": 3,
+              "product_name": "Gizmo X",
+              "quantity": 4
+            }
+          ],
+          "low_stock_threshold": 10
+        }
+      }
+    },
+    {
+      "request": "GET /sales/export.csv?start_date=2026-11-01",
+      "x_api_key_sent": false,
+      "body": null,
+      "status": 200,
+      "response": "id,sale_date,product_id,product_name,category,quantity_sold,total_amount\r\n4,2026-11-01,3,Gizmo X,Tools,1,9.99\r\n6,2026-11-02,5,Pour-over kettle,Brewing,2,85.00\r\n2,2026-11-07,1,Widget A,Gadgets,5,99.95\r\n1,2026-11-08,1,Widget A,Gadgets,10,199.90\r\n3,2026-11-08,2,Widget B,Gadgets,2,59.98\r\n"
+    },
+    {
+      "request": "PATCH /products/5",
+      "x_api_key_sent": true,
+      "body": {
+        "price": null
+      },
+      "status": 422,
+      "response": {
+        "error": {
+          "code": "invalid_request",
+          "message": "Request body or query parameters failed validation.",
+          "details": {
+            "errors": [
+              {
+                "type": "value_error",
+                "loc": [
+                  "body"
+                ],
+                "msg": "Value error, price cannot be null",
+                "input": {
+                  "price": null
+                },
+                "ctx": {
+                  "error": {}
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  ]
+}
