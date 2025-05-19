@@ -2,6 +2,7 @@ from datetime import date
 
 import pytest
 from sqlalchemy import func
+from sqlalchemy.dialects import mysql, postgresql
 
 from app.core.errors import InvalidRequestError
 from app.models.sales import Sale
@@ -53,3 +54,15 @@ def test_register_dialect_adds_a_backend() -> None:
     register_dialect("duckdb", dict.fromkeys(INTERVALS, func.date))
     assert "duckdb" in supported_dialects()
     assert period_expression("duckdb", "week", Sale.sale_date) is not None
+
+
+@pytest.mark.parametrize(
+    ("dialect", "fragment"),
+    [(mysql.dialect(), "%x-W%v"), (postgresql.dialect(), 'IYYY-"W"IW')],
+)
+def test_server_dialects_use_iso_week_formats(dialect, fragment: str) -> None:
+    expression = period_expression(dialect.name, "week", Sale.sale_date)
+    compiled = expression.compile(
+        dialect=dialect, compile_kwargs={"literal_binds": True}
+    )
+    assert fragment in str(compiled).replace("%%", "%")

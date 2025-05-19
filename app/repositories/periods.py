@@ -4,13 +4,16 @@ The revenue endpoints group sales by day/week/month/year. There is no
 portable SQL for that, so each dialect registers its own expression builders
 here instead of hard-coding MySQL functions inside a query. Adding another
 backend means calling :func:`register_dialect` - nothing else changes.
+
+Weeks are ISO 8601 weeks on every dialect (``2025-W01`` starts on Monday
+2024-12-30), so a test run on SQLite labels a week the same way MySQL does.
 """
 
 from collections.abc import Callable
 from datetime import date, timedelta
 from typing import Literal, get_args
 
-from sqlalchemy import ColumnElement, func
+from sqlalchemy import ColumnElement, Integer, cast, func
 
 from app.core.errors import InvalidRequestError
 
@@ -20,22 +23,31 @@ PeriodExpression = Callable[[ColumnElement], ColumnElement]
 
 INTERVALS: tuple[str, ...] = get_args(IntervalName)
 
+
+def _sqlite_iso_week(column: ColumnElement) -> ColumnElement:
+    # SQLite before 3.46 has no %G/%V. The Thursday of a date's ISO week
+    # carries both the ISO year and, via its day of year, the week number.
+    thursday = func.date(column, "-3 days", "weekday 4")
+    week = (cast(func.strftime("%j", thursday), Integer) - 1) / 7 + 1
+    return func.printf("%s-W%02d", func.strftime("%Y", thursday), week)
+
+
 _REGISTRY: dict[str, dict[Interval, PeriodExpression]] = {
     "sqlite": {
         "day": lambda c: func.strftime("%Y-%m-%d", c),
-        "week": lambda c: func.strftime("%Y-W%W", c),
+        "week": _sqlite_iso_week,
         "month": lambda c: func.strftime("%Y-%m", c),
         "year": lambda c: func.strftime("%Y", c),
     },
     "mysql": {
         "day": lambda c: func.date_format(c, "%Y-%m-%d"),
-        "week": lambda c: func.date_format(c, "%Y-W%u"),
+        "week": lambda c: func.date_format(c, "%x-W%v"),
         "month": lambda c: func.date_format(c, "%Y-%m"),
         "year": lambda c: func.date_format(c, "%Y"),
     },
     "postgresql": {
         "day": lambda c: func.to_char(c, "YYYY-MM-DD"),
-        "week": lambda c: func.to_char(c, 'YYYY-"W"IW'),
+        "week": lambda c: func.to_char(c, 'IYYY-"W"IW'),
         "month": lambda c: func.to_char(c, "YYYY-MM"),
         "year": lambda c: func.to_char(c, "YYYY"),
     },

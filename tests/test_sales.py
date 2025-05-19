@@ -165,6 +165,23 @@ async def test_revenue_summary_buckets_by_month(
 
 
 @pytest.mark.asyncio
+async def test_revenue_summary_labels_iso_weeks_across_new_year(
+    client: AsyncClient, stocked_product: dict
+) -> None:
+    for sale_date in ("2024-12-29", "2024-12-30", "2025-01-05", "2027-01-01"):
+        await _record(
+            client, stocked_product["id"], sale_date=sale_date, total_amount="10.00"
+        )
+
+    body = (await client.get("/sales/summary", params={"interval": "week"})).json()
+    assert [(row["period"], float(row["revenue"])) for row in body] == [
+        ("2024-W52", 10.0),
+        ("2025-W01", 20.0),
+        ("2026-W53", 10.0),
+    ]
+
+
+@pytest.mark.asyncio
 async def test_revenue_summary_rejects_an_unknown_interval(
     client: AsyncClient,
 ) -> None:
