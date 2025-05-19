@@ -19,6 +19,16 @@ async def test_open_stock_creates_the_record_and_a_log(
 
 
 @pytest.mark.asyncio
+async def test_stock_quantity_must_fit_an_int_column(
+    client: AsyncClient, product: dict
+) -> None:
+    response = await client.post(
+        "/inventory/", json={"product_id": product["id"], "quantity": 2**31}
+    )
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
 async def test_opening_stock_twice_is_a_conflict(
     client: AsyncClient, stocked_product: dict
 ) -> None:

@@ -7,6 +7,7 @@ from app.db.base import Base
 
 PRICE_PRECISION = 10
 PRICE_SCALE = 2
+MAX_AMOUNT = Decimal(10) ** (PRICE_PRECISION - PRICE_SCALE) - Decimal("0.01")
 
 
 class Product(Base):

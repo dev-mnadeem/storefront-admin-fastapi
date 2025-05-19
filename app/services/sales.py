@@ -8,7 +8,8 @@ from decimal import ROUND_HALF_UP, Decimal
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.errors import ConflictError
+from app.core.errors import ConflictError, InvalidRequestError
+from app.models.products import MAX_AMOUNT
 from app.models.sales import Sale
 from app.repositories.periods import period_bounds
 from app.repositories.sales import SaleRepository
@@ -65,6 +66,11 @@ class SaleService:
             total = (product.price * data.quantity_sold).quantize(
                 CENTS, rounding=ROUND_HALF_UP
             )
+            if total > MAX_AMOUNT:
+                raise InvalidRequestError(
+                    f"A total of {total} is larger than a sale can record.",
+                    max_total=str(MAX_AMOUNT),
+                )
 
         stock = await self.inventory.require_stock(product.id)
         if not await self.inventory.repo.change_quantity(

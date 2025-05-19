@@ -59,6 +59,26 @@ async def test_sale_beyond_stock_is_rejected(
 
 
 @pytest.mark.asyncio
+async def test_total_too_large_to_store_is_rejected_before_stock_moves(
+    client: AsyncClient,
+) -> None:
+    product = await client.post(
+        "/products/", json={"name": "Bulk lot", "price": "99999999.99"}
+    )
+    product_id = product.json()["id"]
+    await client.post("/inventory/", json={"product_id": product_id, "quantity": 5})
+
+    response = await client.post(
+        "/sales/",
+        json={"product_id": product_id, "quantity_sold": 2, "sale_date": "2025-05-19"},
+    )
+    assert response.status_code == 422
+    assert response.json()["error"]["details"]["max_total"] == "99999999.99"
+    levels = await client.get("/inventory/")
+    assert levels.json()["items"][0]["quantity"] == 5
+
+
+@pytest.mark.asyncio
 async def test_rejected_sale_leaves_no_trace(
     client: AsyncClient, stocked_product: dict
 ) -> None:

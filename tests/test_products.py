@@ -34,6 +34,13 @@ async def test_price_must_be_positive(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("price", ["100000000.00", "1.999"])
+async def test_price_must_fit_the_column(client: AsyncClient, price: str) -> None:
+    response = await client.post("/products/", json={"name": "Big", "price": price})
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
 async def test_list_is_paginated(client: AsyncClient) -> None:
     for index in range(5):
         await client.post("/products/", json={"name": f"Item {index}", "price": "1.00"})

@@ -3,10 +3,13 @@ from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.models.inventory import MAX_UNITS
+from app.models.products import PRICE_PRECISION, PRICE_SCALE
+
 
 class SaleBase(BaseModel):
     product_id: int = Field(gt=0)
-    quantity_sold: int = Field(gt=0)
+    quantity_sold: int = Field(gt=0, le=MAX_UNITS)
     sale_date: date
 
 
@@ -17,7 +20,9 @@ class SaleCreate(SaleBase):
     ``price``, which is the only figure the client cannot forge.
     """
 
-    total_amount: Decimal | None = Field(default=None, ge=0, decimal_places=2)
+    total_amount: Decimal | None = Field(
+        default=None, ge=0, max_digits=PRICE_PRECISION, decimal_places=PRICE_SCALE
+    )
 
 
 class SaleRead(SaleBase):

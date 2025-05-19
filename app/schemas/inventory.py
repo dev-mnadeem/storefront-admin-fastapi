@@ -1,11 +1,12 @@
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.models.inventory import MAX_UNITS
 from app.models.inventory_log import DEFAULT_REASON
 
 
 class InventoryBase(BaseModel):
     product_id: int = Field(gt=0)
-    quantity: int = Field(ge=0)
+    quantity: int = Field(ge=0, le=MAX_UNITS)
 
 
 class InventoryCreate(InventoryBase):
@@ -18,7 +19,9 @@ class InventoryAdjust(BaseModel):
     """Move stock by a relative amount - the audited path."""
 
     quantity_change: int = Field(
-        description="Positive to receive stock, negative to write it off."
+        ge=-MAX_UNITS,
+        le=MAX_UNITS,
+        description="Positive to receive stock, negative to write it off.",
     )
     reason: str = Field(default=DEFAULT_REASON, max_length=255)
 

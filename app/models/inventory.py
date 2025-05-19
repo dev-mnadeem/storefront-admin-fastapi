@@ -3,6 +3,9 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 
+# Quantities are signed 32-bit INT columns on MySQL.
+MAX_UNITS = 2**31 - 1
+
 
 class Inventory(Base):
     """Current stock on hand. Exactly one row per product."""
