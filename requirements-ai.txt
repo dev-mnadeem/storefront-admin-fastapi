@@ -1,0 +1,3 @@
+# Only needed for INSIGHT_PROVIDER=anthropic. The default rule-based
+# briefing runs without it.
+anthropic>=0.49
