@@ -1,0 +1,25 @@
+{
+  "fixture": "Synthetic local shop data; real HTTP requests",
+  "sale_status": 201,
+  "sale": {
+    "product_id": 1,
+    "quantity_sold": 2,
+    "sale_date": "2026-10-28",
+    "id": 1,
+    "total_amount": "37.00"
+  },
+  "inventory": {
+    "items": [
+      {
+        "product_id": 1,
+        "product_name": "Demo coffee beans",
+        "category": "Coffee",
+        "quantity": 10,
+        "is_low_stock": false
+      }
+    ],
+    "total": 1,
+    "limit": 50,
+    "offset": 0
+  }
+}
