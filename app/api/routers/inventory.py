@@ -24,7 +24,7 @@ async def list_levels(
     page: Pagination = Depends(pagination),
     service: InventoryService = Depends(get_inventory_service),
 ) -> Page[InventoryLevel]:
-    items, total, _ = await service.levels(
+    items, total = await service.levels(
         low_stock=low_stock,
         threshold=threshold,
         offset=page.offset,

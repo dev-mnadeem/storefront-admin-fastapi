@@ -39,7 +39,7 @@ class InventoryService:
         threshold: int | None,
         offset: int,
         limit: int,
-    ) -> tuple[list[dict], int, int]:
+    ) -> tuple[list[dict], int]:
         effective = settings.low_stock_threshold if threshold is None else threshold
         rows, total = await self.repo.levels(
             low_stock=low_stock, threshold=effective, offset=offset, limit=limit
@@ -54,7 +54,7 @@ class InventoryService:
             }
             for row in rows
         ]
-        return items, total, effective
+        return items, total
 
     async def open_stock(
         self, product_id: int, quantity: int, reason: str

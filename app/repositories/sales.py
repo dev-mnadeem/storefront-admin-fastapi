@@ -2,14 +2,12 @@ from collections.abc import Sequence
 from datetime import date
 from decimal import Decimal
 
-from sqlalchemy import Row, Select, func, select
+from sqlalchemy import ColumnElement, Row, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.products import Product
 from app.models.sales import Sale
 from app.repositories.periods import period_expression
-
-TOP_CATEGORY_LIMIT = 5
 
 
 class SaleRepository:
@@ -21,24 +19,26 @@ class SaleRepository:
         return self.session.get_bind().dialect.name
 
     @staticmethod
-    def _filtered(
+    def _conditions(
         start_date: date | None,
         end_date: date | None,
         product_id: int | None,
         category: str | None,
-    ) -> Select:
-        stmt = select(Sale)
+    ) -> list[ColumnElement[bool]]:
+        """WHERE clauses shared by the list and the export.
+
+        A category filter needs ``products`` joined in by the caller.
+        """
+        conditions: list[ColumnElement[bool]] = []
+        if start_date is not None:
+            conditions.append(Sale.sale_date >= start_date)
+        if end_date is not None:
+            conditions.append(Sale.sale_date <= end_date)
+        if product_id is not None:
+            conditions.append(Sale.product_id == product_id)
         if category:
-            stmt = stmt.join(Product, Product.id == Sale.product_id).where(
-                Product.category == category
-            )
-        if start_date:
-            stmt = stmt.where(Sale.sale_date >= start_date)
-        if end_date:
-            stmt = stmt.where(Sale.sale_date <= end_date)
-        if product_id:
-            stmt = stmt.where(Sale.product_id == product_id)
-        return stmt
+            conditions.append(Product.category == category)
+        return conditions
 
     async def list(
         self,
@@ -50,7 +50,11 @@ class SaleRepository:
         offset: int = 0,
         limit: int = 50,
     ) -> tuple[Sequence[Sale], int]:
-        stmt = self._filtered(start_date, end_date, product_id, category)
+        stmt = select(Sale).where(
+            *self._conditions(start_date, end_date, product_id, category)
+        )
+        if category:
+            stmt = stmt.join(Product, Product.id == Sale.product_id)
         total = await self.session.scalar(
             select(func.count()).select_from(stmt.subquery())
         )
@@ -81,16 +85,9 @@ class SaleRepository:
                 Sale.total_amount,
             )
             .join(Product, Product.id == Sale.product_id)
+            .where(*self._conditions(start_date, end_date, product_id, category))
             .order_by(Sale.sale_date, Sale.id)
         )
-        if start_date:
-            stmt = stmt.where(Sale.sale_date >= start_date)
-        if end_date:
-            stmt = stmt.where(Sale.sale_date <= end_date)
-        if product_id:
-            stmt = stmt.where(Sale.product_id == product_id)
-        if category:
-            stmt = stmt.where(Product.category == category)
         result = await self.session.execute(stmt)
         return result.all()
 

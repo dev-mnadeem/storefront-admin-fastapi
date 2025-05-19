@@ -281,3 +281,19 @@ async def test_csv_export_neutralises_formula_like_text(client: AsyncClient) -> 
     row = (await client.get("/sales/export.csv")).text.strip().splitlines()[1]
     assert "'=HYPERLINK" in row
     assert ",'@ops," in row
+
+
+@pytest.mark.asyncio
+async def test_csv_export_applies_the_list_filters(
+    client: AsyncClient, stocked_product: dict
+) -> None:
+    await _record(client, stocked_product["id"], sale_date="2025-05-01")
+    await _record(client, stocked_product["id"], sale_date="2025-05-19")
+
+    in_window = await client.get(
+        "/sales/export.csv",
+        params={"start_date": "2025-05-10", "category": "Gadgets"},
+    )
+    assert len(in_window.text.strip().splitlines()) == 2
+    other_category = await client.get("/sales/export.csv", params={"category": "Tools"})
+    assert len(other_category.text.strip().splitlines()) == 1
