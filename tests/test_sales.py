@@ -266,3 +266,18 @@ async def test_csv_export_has_a_header_and_a_row(
         "id,sale_date,product_id,product_name,category,quantity_sold,total_amount"
     )
     assert lines[1].endswith("Widget A,Gadgets,3,59.97")
+
+
+@pytest.mark.asyncio
+async def test_csv_export_neutralises_formula_like_text(client: AsyncClient) -> None:
+    product = await client.post(
+        "/products/",
+        json={"name": '=HYPERLINK("x")', "category": "@ops", "price": "1.00"},
+    )
+    product_id = product.json()["id"]
+    await client.post("/inventory/", json={"product_id": product_id, "quantity": 1})
+    await _record(client, product_id, quantity_sold=1)
+
+    row = (await client.get("/sales/export.csv")).text.strip().splitlines()[1]
+    assert "'=HYPERLINK" in row
+    assert ",'@ops," in row

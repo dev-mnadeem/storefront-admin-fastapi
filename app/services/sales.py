@@ -33,6 +33,8 @@ CSV_COLUMNS = (
     "quantity_sold",
     "total_amount",
 )
+# A cell starting with one of these is run as a formula by spreadsheet apps.
+FORMULA_TRIGGERS = ("=", "+", "-", "@", "\t", "\r")
 
 
 class SaleService:
@@ -179,13 +181,18 @@ class SaleService:
                     row.id,
                     row.sale_date.isoformat(),
                     row.product_id,
-                    row.product_name,
-                    row.category or "",
+                    _spreadsheet_text(row.product_name),
+                    _spreadsheet_text(row.category or ""),
                     row.quantity_sold,
                     f"{_money(row.total_amount)}",
                 ]
             )
         return buffer.getvalue()
+
+
+def _spreadsheet_text(value: str) -> str:
+    """Neutralise free text that a spreadsheet would evaluate."""
+    return f"'{value}" if value.startswith(FORMULA_TRIGGERS) else value
 
 
 def _money(value) -> Decimal:
