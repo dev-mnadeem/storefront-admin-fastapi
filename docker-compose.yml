@@ -1,0 +1,36 @@
+services:
+  db:
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpw}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-storefront_admin}
+      MYSQL_USER: ${MYSQL_USER:-storefront}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-storefront}
+    ports:
+      - "${DB_PORT:-7113}:3306"
+    volumes:
+      - db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-p${MYSQL_ROOT_PASSWORD:-rootpw}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  api:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: mysql+aiomysql://${MYSQL_USER:-storefront}:${MYSQL_PASSWORD:-storefront}@db:3306/${MYSQL_DATABASE:-storefront_admin}
+      ADMIN_API_KEY: ${ADMIN_API_KEY:-}
+      LOW_STOCK_THRESHOLD: ${LOW_STOCK_THRESHOLD:-10}
+      INSIGHT_PROVIDER: ${INSIGHT_PROVIDER:-rules}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    ports:
+      - "${API_PORT:-7111}:8000"
+    restart: unless-stopped
+
+volumes:
+  db-data:
