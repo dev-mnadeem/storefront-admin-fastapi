@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import csv
 import io
 from collections.abc import Sequence
@@ -65,7 +67,9 @@ class SaleService:
             )
 
         stock = await self.inventory.require_stock(product.id)
-        if stock.quantity < data.quantity_sold:
+        if not await self.inventory.repo.change_quantity(
+            product.id, -data.quantity_sold
+        ):
             raise ConflictError(
                 f"Only {stock.quantity} unit(s) of product {product.id} in stock.",
                 product_id=product.id,
@@ -76,7 +80,6 @@ class SaleService:
         sale = await self.repo.add(
             product.id, data.quantity_sold, data.sale_date, total
         )
-        stock.quantity -= data.quantity_sold
         self.inventory.repo.log(
             product.id,
             -data.quantity_sold,

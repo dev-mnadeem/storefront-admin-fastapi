@@ -79,14 +79,12 @@ class InventoryService:
         if quantity_change == 0:
             raise InvalidRequestError("quantity_change must not be zero.")
         row = await self.require_stock(product_id)
-        new_quantity = row.quantity + quantity_change
-        if new_quantity < 0:
+        if not await self.repo.change_quantity(product_id, quantity_change):
             raise ConflictError(
                 f"Adjusting by {quantity_change} would take stock below zero.",
                 product_id=product_id,
                 on_hand=row.quantity,
             )
-        row.quantity = new_quantity
         self.repo.log(product_id, quantity_change, reason)
         await self.session.commit()
         await self.session.refresh(row)

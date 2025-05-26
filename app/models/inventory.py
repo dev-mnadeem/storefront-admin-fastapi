@@ -1,4 +1,4 @@
-from sqlalchemy import ForeignKey, Index, Integer
+from sqlalchemy import CheckConstraint, ForeignKey, Index, Integer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -9,6 +9,7 @@ class Inventory(Base):
 
     __tablename__ = "inventory"
     __table_args__ = (
+        CheckConstraint("quantity >= 0", name="ck_inventory_nonnegative"),
         Index("ix_inventory_product_id", "product_id", unique=True),
         Index("ix_inventory_quantity", "quantity"),
     )

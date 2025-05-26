@@ -19,6 +19,7 @@ CREATE TABLE inventory (
   id INT PRIMARY KEY AUTO_INCREMENT,
   product_id INT NOT NULL,
   quantity INT NOT NULL DEFAULT 0,
+  CONSTRAINT ck_inventory_nonnegative CHECK (quantity >= 0),
   UNIQUE INDEX ix_inventory_product_id (product_id),
   INDEX ix_inventory_quantity (quantity),
   FOREIGN KEY (product_id) REFERENCES products(id)

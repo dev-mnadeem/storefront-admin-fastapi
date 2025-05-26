@@ -1,6 +1,6 @@
 from collections.abc import Sequence
 
-from sqlalchemy import Row, func, select
+from sqlalchemy import Row, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.inventory import Inventory
@@ -17,6 +17,23 @@ class InventoryRepository:
             select(Inventory).where(Inventory.product_id == product_id)
         )
         return result.scalar_one_or_none()
+
+    async def change_quantity(self, product_id: int, delta: int) -> bool:
+        """Reserve stock in one statement, including the nonnegative check.
+
+        A read followed by an absolute assignment loses updates when two
+        requests sell the last units at the same time.
+        """
+        result = await self.session.execute(
+            update(Inventory)
+            .where(
+                Inventory.product_id == product_id,
+                Inventory.quantity + delta >= 0,
+            )
+            .values(quantity=Inventory.quantity + delta)
+            .execution_options(synchronize_session=False)
+        )
+        return result.rowcount == 1
 
     async def levels(
         self,

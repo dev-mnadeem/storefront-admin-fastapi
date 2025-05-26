@@ -1,8 +1,14 @@
 # Storefront Admin API
 
-Admin backend for a small shop: products, stock levels, sales and revenue reports. It runs on FastAPI with async SQLAlchemy. MySQL is the intended database, and if `DATABASE_URL` isn't set it falls back to a local SQLite file so you can try it without installing anything.
+Admin backend for a small shop: products, stock levels, sales and revenue reports. It runs on FastAPI with async SQLAlchemy. MySQL is the deployment database. Without `DATABASE_URL`, the API uses a local SQLite file; the native demo needs only Python 3.11+ and the packages below.
 
-Recording a sale prices it from the product, takes the quantity out of inventory and writes an inventory log entry, all in a single transaction. If there isn't enough stock you get a 409 with the on-hand and requested quantities.
+Recording a sale prices it from the product, takes the quantity out of inventory and writes an inventory log entry, all in a single transaction. Stock is decremented with a conditional SQL update, so two requests cannot both sell the last unit. Insufficient stock returns 409; no sale or stock log is committed for that request.
+
+![API reference captured from the running local service](docs/images/api-reference.png)
+
+A [recorded HTTP example](docs/api-demo.json) creates a demo product with 12 units,
+sells two through `POST /sales/` (201), and reads back 10 units. The data is synthetic;
+the requests and responses come from the local API.
 
 ## Setup
 
@@ -42,10 +48,40 @@ pytest
 ruff check .
 ```
 
-Tests run on in-memory SQLite, no MySQL needed.
+Most tests use in-memory SQLite. The last-unit regression uses a temporary file database
+and independent sessions: two simultaneous requests produce one sale, one conflict,
+one stock movement and zero remaining units. Run the suite with `python -m pytest`.
+MySQL deployment behavior should also be checked against your configured server.
+
+```mermaid
+sequenceDiagram
+    participant C as Admin client
+    participant A as Sales service
+    participant D as Database
+    C->>A: POST /sales/
+    A->>D: UPDATE inventory WHERE quantity >= requested
+    alt one row updated
+        A->>D: INSERT sale + inventory log
+        A->>D: COMMIT
+        A-->>C: 201 sale
+    else insufficient stock
+        A->>D: ROLLBACK
+        A-->>C: 409 conflict
+    end
+```
+
+New databases also enforce `quantity >= 0` with a check constraint. `create_all`
+does not alter existing tables. For an existing MySQL 8.0.16+ database, back it up,
+resolve any negative quantities, then apply
+[`migrations/001_inventory_nonnegative.sql`](migrations/001_inventory_nonnegative.sql).
+The conditional update protects the API before that migration is applied.
 
 ## TODO
 
 - Add migrations instead of relying on `create_all`
 - Support refunds or corrections for sales
 - Stream the CSV export instead of building it in memory
+
+## Author
+
+[**Muhammad Nadeem**](https://github.com/dev-mnadeem)
